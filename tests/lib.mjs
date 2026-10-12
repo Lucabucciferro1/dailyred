@@ -13,6 +13,10 @@ export const ELF = join(GAME_DIR, 'pokefirered_modern.elf');
 
 const CHROME_PATHS = [
   process.env.CHROME_PATH,
+  ...[process.env.PROGRAMFILES, process.env['PROGRAMFILES(X86)'], process.env.LOCALAPPDATA]
+    .filter(Boolean).map((root) => join(root, 'Google/Chrome/Application/chrome.exe')),
+  ...[process.env.PROGRAMFILES, process.env['PROGRAMFILES(X86)'], process.env.LOCALAPPDATA]
+    .filter(Boolean).map((root) => join(root, 'Microsoft/Edge/Application/msedge.exe')),
   '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
   '/usr/bin/google-chrome',
   '/usr/bin/chromium',
@@ -20,7 +24,7 @@ const CHROME_PATHS = [
 
 export function findChrome() {
   const path = CHROME_PATHS.find((p) => existsSync(p));
-  if (!path) throw new Error('Google Chrome not found. Set CHROME_PATH to a Chrome/Chromium binary.');
+  if (!path) throw new Error('Chrome/Edge not found. Set CHROME_PATH to a Chrome, Chromium or Edge binary.');
   return path;
 }
 
@@ -125,12 +129,13 @@ export async function readMemory(page) {
   };
 }
 
-// Symbol addresses from the built ELF (needs the toolchain from setup-macos.sh).
+// Symbol addresses from the built ELF (needs the macOS or Windows toolchain).
 let symbolCache;
 export function symbols() {
   if (symbolCache) return symbolCache;
-  const nm = join(ROOT, '.toolchain/arm-none-eabi/bin/arm-none-eabi-nm');
-  const out = execFileSync(existsSync(nm) ? nm : 'arm-none-eabi-nm', [ELF], { encoding: 'utf8', maxBuffer: 64 << 20 });
+  const executable = `arm-none-eabi-nm${process.platform === 'win32' ? '.exe' : ''}`;
+  const nm = join(ROOT, '.toolchain/arm-none-eabi/bin', executable);
+  const out = execFileSync(existsSync(nm) ? nm : executable, [ELF], { encoding: 'utf8', maxBuffer: 64 << 20, windowsHide: true });
   symbolCache = new Map();
   for (const line of out.split('\n')) {
     const [addr, , name] = line.trim().split(/\s+/);

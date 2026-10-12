@@ -12,6 +12,7 @@ small set of source changes, built into a GBA ROM and played in the browser
 through the mGBA emulator compiled to WebAssembly. Nothing about battles is
 reimplemented in JavaScript.
 
+- [Quick start (Windows)](#quick-start-windows)
 - [Quick start (macOS)](#quick-start-macos)
 - [How it works](#how-it-works)
 - [Team generation](#team-generation)
@@ -21,6 +22,76 @@ reimplemented in JavaScript.
 - [Running it locally](#running-it-locally)
 - [Copyright and licenses](#copyright-and-licenses)
 - [Known limitations](#known-limitations)
+
+## Quick start (Windows)
+
+You need **Windows 10/11 (x64)** and an internet connection for the first
+launch. Download/extract this project, then double-click **`play.cmd`**.
+You can also open a PowerShell window in this checkout and run:
+
+```powershell
+.\play.cmd
+```
+
+The launcher automatically installs missing Git and Node.js dependencies
+inside `.toolchain/`. It reuses working Git 2.x and Node.js 18+ installations
+on PATH; otherwise it downloads SHA-256-verified portable MinGit 2.56.0.2 and
+Node.js 24.21.0 (including npm). No manual installations, winget, or terminal
+restart are needed.
+
+The first launch also downloads a project-local MSYS2 build environment and
+ARM compiler, fetches the pinned game source and emulator, builds the game, and opens
+**http://localhost:8080** in your default browser. Allow several minutes and
+about 3 GB of free disk space for the first setup. Internet access is needed
+for setup; later launches use the local files. Keep the launcher window open
+while playing; press **Ctrl+C** to stop the server.
+
+The build runs using Windows executables and MSYS2's Bash/Make tools.
+**No WSL, Docker, administrator terminal, or original ROM is needed.**
+Everything downloaded stays in `.toolchain/`, `pokefirered/` or `web/`;
+setup does not change your global PATH or Git configuration. The launcher
+uses a process-scoped PowerShell execution policy. Project paths containing
+spaces are supported.
+
+For development, the individual steps are available from PowerShell:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows.ps1 setup
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows.ps1 build
+.\play.cmd
+
+# Rebuild after editing pokefirered/, or save your game changes as a patch:
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows.ps1 build
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows.ps1 save-patch
+
+# Optional: clean build outputs, limit parallel jobs, or use another port:
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows.ps1 clean
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows.ps1 build -Jobs 4
+.\play.cmd -Port 3000
+.\play.cmd -NoBrowser
+```
+
+Setup can be rerun: completed downloads are checked and reused, and an
+existing patched game checkout is kept. `build` is incremental. The launcher
+builds when assets are missing; run `build` explicitly after source edits.
+If setup is interrupted, run it again. If a port is occupied, close the
+other server or choose another port (browser stats are separate per port).
+
+To run the browser tests, use the following command. It prepares any missing
+game files and installs the npm test dependencies automatically:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows.ps1 test
+```
+
+The tests use Google Chrome or Microsoft Edge (included with Windows), and
+find standard installations automatically. npm's download cache also stays
+inside `.toolchain/`.
+For a custom installation, set `$env:CHROME_PATH = 'C:\path\to\chrome.exe'`.
+Use `npm.cmd` in PowerShell if your execution policy blocks `npm.ps1`.
+The portable Node.js/npm and Git copies are added to PATH only for the
+launcher process; use the PowerShell commands above to access them without
+changing your system PATH.
 
 ## Quick start (macOS)
 
@@ -250,6 +321,11 @@ come from FireRed's usual name-based formula and aren't configurable.
 4. When you're happy, run `scripts/save-patch.sh` and commit
    `patches/pokefirered-dailyred.patch`.
 
+On Windows, use `scripts\windows.ps1 build` and `scripts\windows.ps1 save-patch`
+through PowerShell as shown in the Windows quick start. Keep `.gitattributes`:
+the binary patch and shell scripts require LF line endings even when Git's
+Windows `core.autocrlf` setting is enabled.
+
 `pokefirered/`, `.toolchain/`, `web/vendor/` and `web/game/` are not tracked
 (see `.gitignore`); a clean checkout recreates them with the scripts above.
 `git -C pokefirered diff` shows all game changes against upstream.
@@ -364,8 +440,11 @@ footer links to it.
 - **Audio** can't be checked by the headless tests. Browsers start audio
   suspended unless it begins during a click, so the game resumes it on the
   next key press or tap.
-- **Tested environment:** macOS with Google Chrome (headless, desktop and
-  phone emulation). Not yet tried on Safari, Firefox or real phones.
+- **Tested environments:** macOS and native Windows with Google Chrome
+  (headless, desktop and phone emulation). Windows setup, fresh/incremental
+  ROM builds and paths containing spaces are also verified. Not yet tried
+  on Safari, Firefox or real phones; Edge is supported by test discovery
+  but the full suite was run with Chrome.
 - The L/R buttons still open FireRed's built-in help, which describes the
   normal game.
 
@@ -374,6 +453,9 @@ footer links to it.
 ```
 patches/pokefirered-dailyred.patch   all changes to pret/pokefirered
 scripts/setup-macos.sh               toolchain (xPack arm-none-eabi-gcc 14.2.1 + libpng)
+play.cmd                            Windows one-click setup, build and launch
+scripts/windows.ps1                 Windows setup/build/clean/start/save-patch/test
+scripts/windows-build.sh             internal MSYS2 build helper for Windows
 scripts/get-pokefirered.sh           pinned upstream checkout + patch
 scripts/save-patch.sh                pokefirered/ changes → patches/
 scripts/build-rom.sh                 make modern → web/game/dailyred.gba.gz

@@ -1,0 +1,7 @@
+# Git patches (including binary hunks) and shell scripts must keep LF on Windows.
+* text=auto eol=lf
+*.patch text eol=lf
+*.sh text eol=lf
+scripts/shims/* text eol=lf
+*.ps1 text eol=lf
+*.cmd text eol=crlf

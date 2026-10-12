@@ -1,0 +1,42 @@
+name: Windows
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build-and-test:
+    runs-on: windows-latest
+    timeout-minutes: 45
+    defaults:
+      run:
+        shell: powershell
+        working-directory: daily red
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: daily red
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Cache verified toolchain downloads
+        uses: actions/cache@v4
+        with:
+          path: daily red/.toolchain/downloads
+          key: windows-downloads-${{ hashFiles('daily red/scripts/windows.ps1') }}
+      - name: Test automatic dependency installation without Git or Node on PATH
+        run: .\tests\windows-deps.ps1
+      - name: Set up Windows tools and game sources
+        run: .\scripts\windows.ps1 setup
+      - name: Build the ROM
+        run: .\scripts\windows.ps1 build
+      - name: Install test dependencies and run server, game and website tests
+        run: .\scripts\windows.ps1 test
+      - name: Save test screenshots on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-test-screenshots
+          path: daily red/tests/output/
+          if-no-files-found: ignore

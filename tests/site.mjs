@@ -3,12 +3,13 @@
 // abandoned battles, streaks, practice runs, the phone layout and the error
 // screen. Screenshots go to tests/output/site-*.png.
 import { mkdirSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 import {
   startServer, launchBrowser, sleep, press, getStatus, waitFor, startRedBattle, forceWin, forceLoss,
 } from './lib.mjs';
 import { readParty } from './party.mjs';
 
-const OUT = new URL('./output/', import.meta.url).pathname;
+const OUT = fileURLToPath(new URL('./output/', import.meta.url));
 mkdirSync(OUT, { recursive: true });
 
 let failures = 0;
